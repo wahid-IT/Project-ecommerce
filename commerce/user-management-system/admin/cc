@@ -1,0 +1,152 @@
+<?php
+include 'config.php';
+
+//Import PHPMailer classes into the global namespace
+//These must be at the top of your script, not inside a function
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\SMTP;
+use PHPMailer\PHPMailer\Exception;
+
+require 'vendor/autoload.php';
+
+session_start();
+error_reporting(0);
+
+if (isset($_POST["signup"])) {
+  $full_name = mysqli_real_escape_string($conn, $_POST["signup_full_name"]);
+  $email = mysqli_real_escape_string($conn, $_POST["signup_email"]);
+  $password = mysqli_real_escape_string($conn, $_POST["signup_password"]);
+  $cpassword = mysqli_real_escape_string($conn, $_POST["signup_cpassword"]);
+  $city = mysqli_real_escape_string($conn, $_POST["signup_city"]);
+  $phone = mysqli_real_escape_string($conn, $_POST["signup_phone"]);
+
+  $check_email = mysqli_num_rows(mysqli_query($conn, "SELECT mail_cl FROM client WHERE mail_cl='$email'"));
+
+  if ($password !== $cpassword) {
+    echo "<script>alert('Les mots de passe ne correspond pas.');</script>";
+  } elseif ($check_email > 0) {
+    echo "<script>alert('Email existe déjà dans notre base de données.');</script>";
+  } else {
+    $sql = "INSERT INTO client (nom_prenom_cl, mail_cl, password_cl, adresse_cl, tel_cl, paiement, confirmer) VALUES ('$full_name', '$email', '$password', '$city', '$phone', '0', 'non accepter')";
+    $result = mysqli_query($conn, $sql);
+    if ($result) {
+      echo "<script>alert('Veuillez patienter lorsque votre demande sera approuver.');</script>";
+      $_POST["signup_full_name"] = "";
+      $_POST["signup_email"] = "";
+      $_POST["signup_password"] = "";
+      $_POST["signup_cpassword"] = "";
+      $_POST["signup_city"] = "";
+      $_POST["signup_phone"] = "";
+    }
+  }
+}
+
+if (isset($_POST["signin"])) {
+  $email = $_POST["email"];
+  $password = $_POST["password"];
+
+  $check_email = mysqli_query($conn, "SELECT id_client FROM client WHERE mail_cl='$email' AND password_cl='$password' AND confirmer='accepter'");
+
+  if (mysqli_num_rows($check_email) > 0) {
+    $row = mysqli_fetch_assoc($check_email);
+    $_SESSION["login_id"] = $row['id_client'];
+    $_SESSION['login_type'] = "3";
+    //header("Location: welcome.php");
+    header("location:/One-click-delivery/courier/index.php?page=home");
+  } else {
+    echo "<script>alert('Votre informations sont incorrects. Essaie une autre fois.');</script>";
+  }
+}
+?>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="style.css" />
+  <title>Se connecter - One Click Delivery</title>
+  <link rel="icon" type="image" href="/One-click-delivery/images/one-click.jpg">
+</head>
+
+<body>
+  <div class="container">
+    <div class="forms-container">
+      <div class="signin-signup">
+        <form action="" method="post" class="sign-in-form">
+          <h2 class="title">Se connecter</h2>
+          <div class="input-field">
+            <i class="fas fa-user"></i>
+            <input type="text" placeholder="Adresse Email" name="email" value="<?php echo $_POST['email']; ?>" required />
+          </div>
+          <div class="input-field">
+            <i class="fas fa-lock"></i>
+            <input type="password" placeholder="Mot de passe" name="password" value="<?php echo $_POST['password']; ?>" required />
+          </div>
+          <input type="submit" value="Login" name="signin" class="btn solid" />
+          <p style="display: flex;justify-content: center;align-items: center;margin-top: 20px;"><a href="/One-click-delivery/index.html" ><img src="/One-click-delivery/images/one-click.jpg"></a></p>
+        </form>
+        <form action="" class="sign-up-form" method="post">
+          <h2 class="title">S'inscrire</h2>
+          <div class="input-field">
+            <i class="fas fa-user"></i>
+            <input type="text" placeholder="Nom et Prénom" name="signup_full_name" value="<?php echo $_POST["signup_full_name"]; ?>" required />
+          </div>
+          <div class="input-field">
+            <i class="fas fa-envelope"></i>
+            <input type="email" placeholder="Address Email" name="signup_email" value="<?php echo $_POST["signup_email"]; ?>" required />
+          </div>
+          <div class="input-field">
+            <i class="fas fa-lock"></i>
+            <input type="password" placeholder="Mot de passe" name="signup_password" value="<?php echo $_POST["signup_password"]; ?>" required />
+          </div>
+          <div class="input-field">
+            <i class="fas fa-lock"></i>
+            <input type="password" placeholder="Confirmer Mot de passe" name="signup_cpassword" value="<?php echo $_POST["signup_cpassword"]; ?>" required />
+          </div>
+          <div class="input-field">
+            <i class="fas fa-envelope"></i>
+            <input type="text" placeholder="Adresse" name="signup_city" value="<?php echo $_POST["signup_city"]; ?>" required />
+          </div>
+          <div class="input-field">
+            <i class="fas fa-envelope"></i>
+            <input type="text" placeholder="Téléphone" name="signup_phone" value="<?php echo $_POST["signup_phone"]; ?>" required />
+          </div>
+          <input type="submit" class="btn" name="signup" value="S'inscrire" />
+        </form>
+      </div>
+    </div>
+
+    <div class="panels-container">
+      <div class="panel left-panel">
+        <div class="content">
+          <h3>Nouveau ici ?</h3>
+          <p>
+          Rejoindrez nous
+          </p>
+          <button class="btn transparent" id="sign-up-btn">
+            S'inscrire
+          </button>
+        </div>
+        <img src="img/log.svg" class="image" alt="" />
+      </div>
+      <div class="panel right-panel">
+        <div class="content">
+          <h3>Un membre de nous ?</h3>
+          <p>
+          Bienvenu
+          </p>
+          <button class="btn transparent" id="sign-in-btn">
+            Se connecter
+          </button>
+        </div>
+        <img src="img/register.svg" class="image" alt="" />
+      </div>
+    </div>
+  </div>
+
+  <script src="https://kit.fontawesome.com/64d58efce2.js" crossorigin="anonymous"></script>
+  <script src="app.js"></script>
+</body>
+
+</html>
